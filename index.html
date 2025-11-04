@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎅 Santa Tracker</title>
+<style>
+  body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #001a33;
+      color: white;
+      text-align: center;
+  }
+  h1 {
+      font-size: 3em;
+      margin: 20px 0;
+      color: #ff0000;
+      text-shadow: 0 0 10px #fff;
+  }
+  #map {
+      position: relative;
+      width: 90%;
+      max-width: 900px;
+      height: 450px;
+      margin: 0 auto;
+      background: url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg') no-repeat center;
+      background-size: contain;
+      border: 3px solid #fff;
+      border-radius: 10px;
+      overflow: hidden;
+  }
+  #santa {
+      position: absolute;
+      font-size: 3rem;
+      transform: translate(-50%, -50%);
+  }
+  #countdown, #location, #speed {
+      margin-top: 10px;
+      font-size: 1.2em;
+  }
+  button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 1em;
+      border-radius: 5px;
+      border: none;
+      background-color: #ff0000;
+      color: white;
+      cursor: pointer;
+  }
+  button:hover { background-color: #cc0000; }
+</style>
+</head>
+<body>
+<h1>🎅 Santa Tracker</h1>
+<div id="countdown"></div>
+
+<div id="map">
+  <div id="santa">🛷</div>
+</div>
+<div id="location">Santa is starting his journey...</div>
+<div id="speed">Speed: 0 mph (0 km/h)</div>
+<button onclick="resetSanta()">Reset Santa</button>
+<div id="disclaimer" style="margin-top:10px;font-size:0.9em;color:#ccc">
+⚠️ For fun only — not Santa’s real route.
+</div>
+
+<script>
+function updateCountdown(){
+  const today=new Date();
+  const year=today.getFullYear();
+  let christmas=new Date(year,11,25);
+  if(today>christmas) christmas.setFullYear(year+1);
+  const diff=christmas-today;
+  const days=Math.ceil(diff/(1000*60*60*24));
+  document.getElementById("countdown").innerText=`🎄 Only ${days} days until Christmas! 🎄`;
+}
+updateCountdown();
+
+// approximate city coordinates (x,y in % of map)
+const cities=[
+  {name:"North Pole",x:50,y:5},
+  {name:"London UK",x:41,y:23},
+  {name:"Paris France",x:42,y:25},
+  {name:"New York USA",x:27,y:33},
+  {name:"Rio Brazil",x:35,y:75},
+  {name:"Cape Town",x:46,y:85},
+  {name:"Tokyo Japan",x:82,y:32},
+  {name:"Sydney Australia",x:87,y:75}
+];
+
+const santa=document.getElementById("santa");
+const map=document.getElementById("map");
+const locText=document.getElementById("location");
+const speedText=document.getElementById("speed");
+
+let cur=0,next=1;
+let x=cities[cur].x,y=cities[cur].y;
+let progress=0;
+let speedPixels=8; // faster visible speed
+let mph=0,kmh=0;
+
+function setNewSpeed(){
+  mph=Math.random()*(8200000-5100000)+5100000;
+  kmh=mph*1.60934;
+  speedText.innerText=`Speed: ${mph.toLocaleString(undefined,{maximumFractionDigits:0})} mph (${kmh.toLocaleString(undefined,{maximumFractionDigits:0})} km/h)`;
+}
+
+function animate(){
+  const start=cities[cur],end=cities[next];
+  const dx=end.x-start.x,dy=end.y-start.y;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+  progress+=speedPixels/100; // adjust visible speed
+  if(progress>=dist){
+      // arrived
+      x=end.x;y=end.y;
+      santa.style.left=x+"%"; santa.style.top=y+"%";
+      locText.innerText=`🎅 Santa has arrived at ${end.name}!`;
+      cur=next;
+      next=(next+1)%cities.length;
+      progress=0;
+      setTimeout(()=>{
+          setNewSpeed();
+          locText.innerText=`🎅 Santa is going to ${cities[next].name}!`;
+          requestAnimationFrame(animate);
+      },700);
+      return;
+  }
+  x=start.x+(dx*(progress/dist));
+  y=start.y+(dy*(progress/dist));
+  santa.style.left=x+"%";
+  santa.style.top=y+"%";
+  requestAnimationFrame(animate);
+}
+
+function resetSanta(){
+  cur=0;next=1;progress=0;
+  x=cities[cur].x;y=cities[cur].y;
+  santa.style.left=x+"%"; santa.style.top=y+"%";
+  setNewSpeed();
+  locText.innerText="🎅 Santa is starting his journey...";
+  requestAnimationFrame(animate);
+}
+
+// click to send Santa anywhere
+map.addEventListener("click",(e)=>{
+  const rect=map.getBoundingClientRect();
+  const px=((e.clientX-rect.left)/rect.width)*100;
+  const py=((e.clientY-rect.top)/rect.height)*100;
+  cities[next]={name:"Custom Location",x:px,y:py};
+  locText.innerText="🎅 Santa is going to your chosen location!";
+  setNewSpeed();
+});
+
+setNewSpeed();
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
